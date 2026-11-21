@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CT78.A10 Synth</title>
+<style>
+  :root {
+    --bar: #23222b; --bar2: #2d2c37; --ink: #f1eef6; --dim: #a9a4b8; --line: #3d3b49;
+    --rose: #f7b5c9; --peach: #ffd2a8; --butter: #f9eaa0; --mint: #b6ecd0; --sky: #b4d6f7; --lilac: #d5c2f5; --red: #ff6f7d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1b1a21; color: var(--ink); font: 13px/1.3 "Segoe UI", "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+  body { display: flex; flex-direction: row; }
+  #stage { position: relative; flex: 1 1 auto; min-height: 0; background: #050304; }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: contain; cursor: grab; touch-action: none; }
+  #c.drag { cursor: grabbing; } #c.key { cursor: pointer; }
+
+  /* the display on the right (the usual panel): info + buttons; H shows / hides it (hidden at start, Harness 6) */
+  #side { flex: 0 0 312px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overflow-x: hidden; background: var(--bar); border-left: 1px solid var(--line); padding: 10px 8px; }
+  body.nobar.nohud #side { display: none; }
+  @media (max-width: 760px) { #side { position: absolute; right: 0; top: 0; bottom: 0; width: min(312px, 86vw); z-index: 7; background: rgba(35, 34, 43, .94); } }
+  #hud { padding: 8px 10px; border-radius: 10px; background: var(--bar2); font: 11px/1.45 ui-monospace, Consolas, Menlo, monospace; white-space: pre-wrap; word-break: break-word; pointer-events: none; color: #f4f1f8; }
+  #hud b { color: var(--butter); font-weight: 600; }
+  #hint { font-size: 11.5px; color: rgba(240, 232, 220, .75); pointer-events: none; line-height: 1.5; padding: 0 4px; }
+  body.nohud #hud, body.nohud #hint { display: none; }
+  #toast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); max-width: min(760px, 92%); padding: 9px 14px; border-radius: 10px;
+           background: rgba(35, 34, 43, .9); color: var(--ink); font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; text-align: center; z-index: 8; }
+  #toast.on { opacity: 1; } #toast a { color: var(--butter); pointer-events: auto; }
+  /* A10 (request 55): stays until a click or key turns the sound on */
+  #audioNote { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); padding: 9px 16px; border-radius: 22px; background: rgba(35, 34, 43, .9);
+               border: 1px solid var(--butter); color: var(--butter); font-size: 14px; font-weight: 600; cursor: pointer; z-index: 8; white-space: nowrap; }
+  #audioNote.off { display: none; }
+  #recDot { position: absolute; right: 14px; bottom: 12px; padding: 5px 10px; border-radius: 20px; background: rgba(35, 34, 43, .78); color: #fff; font-weight: 600; display: none; }
+  body.recording #recDot { display: block; }
+  #recDot i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); margin-right: 6px; animation: blink 1s steps(2) infinite; vertical-align: -1px; }
+  @keyframes blink { 50% { opacity: .25; } }
+  #credit { position: absolute; left: 12px; bottom: 8px; font-size: 10.5px; color: rgba(255, 255, 255, .38); pointer-events: none; z-index: 3; }
+  #credit a { color: rgba(255, 255, 255, .55); pointer-events: auto; }
+
+  #bar { flex: 0 0 auto; display: flex; flex-direction: column; gap: 13px; align-items: stretch; padding: 8px 0 4px; }
+  #bar .grp { flex-wrap: wrap; padding-top: 9px; }
+  .grp { display: flex; gap: 4px; align-items: stretch; padding: 4px 6px 5px; border-radius: 11px; background: var(--bar2); position: relative; }
+  .grp > .gl { position: absolute; top: -7px; left: 10px; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); background: var(--bar); padding: 0 5px; border-radius: 4px; }
+  button { font: inherit; color: var(--ink); background: #3a3846; border: 1px solid #4a4858; border-radius: 8px; padding: 6px 9px 5px; cursor: pointer; min-width: 40px;
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; user-select: none; -webkit-user-select: none; transition: background .12s, border-color .12s, transform .05s; }
+  button:hover { background: #46434f; }
+  button:active, button.hit { transform: translateY(1px); background: #504c5c; }
+  button .t { font-weight: 600; white-space: nowrap; }
+  button .m { font-size: 9.5px; color: var(--dim); white-space: nowrap; min-height: 11px; }
+  button.tog::before { content: ""; width: 26px; height: 4px; border-radius: 3px; background: #55525f; margin-bottom: 2px; }
+  button.tog.on::before { background: var(--c, var(--mint)); box-shadow: 0 0 8px var(--c, var(--mint)); }
+  button.tog.on { border-color: var(--c, var(--mint)); }
+  button.learn { outline: 2px dashed var(--butter); outline-offset: 2px; }
+  .val { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; padding: 0 2px; }
+  .val .v { font: 600 14px/1.1 ui-monospace, Consolas, Menlo, monospace; color: var(--butter); white-space: nowrap; }
+  .val .u { font-size: 9.5px; color: var(--dim); }
+  button.small { min-width: 28px; padding: 4px 5px; }
+  button.small .t { font-size: 15px; line-height: 1; }
+  #b_record.on { --c: var(--red); background: #5a2f39; }
+  #b_record .t::before { content: "● "; color: var(--red); }
+  .timer { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 96px; padding: 0 6px; }
+  .timer .v { font: 600 22px/1.05 ui-monospace, Consolas, Menlo, monospace; color: var(--butter); letter-spacing: .02em; }
+  .timer .u { font-size: 9.5px; color: var(--dim); }
+
+  .panel { position: absolute; left: 12px; top: 12px; width: min(580px, 46%); max-height: calc(100% - 24px); overflow: auto; padding: 16px 20px;
+           border-radius: 14px; background: rgba(35, 34, 43, .96); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.35); display: none; z-index: 5; }
+  .panel.on { display: block; }
+  @media (max-width: 900px) { .panel { width: calc(100% - 24px); } }
+  .panel h2 { margin: 0 0 8px; font-size: 17px; color: var(--rose); }
+  .panel h3 { margin: 14px 0 4px; font-size: 13px; color: var(--butter); }
+  .panel p, .panel li { color: #dcd7e6; line-height: 1.5; }
+  .panel table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .panel td, .panel th { border-bottom: 1px solid #3d3b49; padding: 3px 6px; text-align: left; }
+  .panel th { color: var(--dim); font-weight: 600; }
+  .panel kbd { font: 11px ui-monospace, Consolas, monospace; background: #45424f; border-radius: 4px; padding: 1px 5px; }
+  .panel a { color: var(--butter); }
+  .panel .x { position: absolute; right: 12px; top: 10px; min-width: 0; padding: 2px 9px; }
+  .panel .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .panel .row button { flex-direction: row; }
+  .learned { color: var(--butter); }
+  select { font: inherit; color: var(--ink); background: #3a3846; border: 1px solid #4a4858; border-radius: 6px; padding: 3px 5px; max-width: 150px; }
+  body.nobar #bar { display: none; }
+
+  /* A10: the original dolls' controls, in the one right-hand column */
+  #dollctl { flex-direction: column; gap: 3px; padding: 11px 8px 7px; }
+  #dollctl .pr { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; align-items: center; font-size: 11.5px; color: #dcd7e6; }
+  #dollctl .pr .v { font: 600 11px ui-monospace, Consolas, Menlo, monospace; color: var(--butter); min-width: 44px; text-align: right; }
+  #dollctl .pr input[type=range] { grid-column: 1 / 3; width: 100%; margin: 0 0 3px; accent-color: var(--rose); }
+  #dollctl .btns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  #dollctl .note { font-size: 10.5px; color: var(--dim); line-height: 1.4; }
+  #b_panels { position: absolute; right: 10px; bottom: 10px; z-index: 6; min-width: 0; width: 38px; height: 38px; padding: 0; border-radius: 50%;
+              background: rgba(35, 34, 43, .45); border-color: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .8); font-size: 18px; }
+  body.recording #b_panels { bottom: 48px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="toast"></div>
+  <div id="audioNote">🔈 Click on the screen to turn the sound on</div>
+  <div id="credit">© 2026 Michael Wahrman. All rights reserved. · <a href="ISSUES.html">issues &amp; questions</a></div>
+  <div id="recDot"><i></i><span id="recTime">0:00</span></div>
+  <button id="b_panels" title="show / hide the display on the right (H)" aria-label="show or hide the controls">☰</button>
+
+  <div class="panel" id="helpPanel">
+    <button class="x" data-close>✕</button>
+    <h2>CT78.A10 · Synth</h2>
+    <p>A toy synthesizer, drawn in WebGL (three.js) and played from MIDI. <b>When a MIDI key goes down, the matching key on the toy goes down</b>, lights up red, and sounds.
+      The three small glass tubes on top each hold a glowing red/orange element (no bubbles) that flickers a little. Only the keys light up when you play; the tubes and the little lights on the panel do not react to the keys.
+      The toy has 20 white keys and 14 black keys, C3 to A5 (MIDI 48–81). A MIDI note outside that range sounds in the nearest octave on the toy. Eight jacks with lights sit on the front (no patch cables).</p>
+    <p><b>Play mode</b> (<kbd>P</kbd> or <kbd>Space</kbd>) plays a song on the keys by itself, as if a player were at the toy. You can also click or tap the keys with the mouse, and play along from MIDI.
+      <b>The doll</b> (the centre caroler from CT68, without her candle) stands in front of the toy. In play mode the toy plays itself, like a player piano, and she plays along: her right hand the tune, her left hand the bass, each fingertip landing on its key as it goes down (in a chord one key per hand; the others go down by themselves). Her hands are palm down, her elbows out; she turns and reaches a little toward the keys, looks down at her hands, and mouths the words of the carols. When a song ends her hands rest on the keys for a second, then the next song starts; after the last song (We Wish You a Merry Christmas) there is a 5 s pause and the playlist starts again. The <b>Doll</b> group in the right-hand column has the controls of the original CT68 dolls (head, eyes, mouth, blink, sway, spin, Sing, Talk).
+      <b>Songs</b>: Silent Night (electric piano), Joy to the World (organ, four verses), We Wish You a Merry Christmas (piano); each song sets its instrument and tempo, and the toy's display changes colour and picture with the instrument. <code>?doll=0</code> starts without her. <code>CT78.keyTarget(note)</code> gives the world position of a key's top and how far it travels; <code>CT78.down(note)</code> / <code>CT78.up(note)</code> press and release it.
+      The display on the right (the info and the buttons) is showing at the start; <kbd>H</kbd> or the round <b>☰</b> button hides and shows it. The toy starts in play mode (<kbd>P</kbd> stops it); sound starts at your first click.</p>
+    <h3>Buttons and keys</h3>
+    <table>
+      <tr><th>Button</th><th>Key</th><th>What it does</th></tr>
+      <tr><td>Play</td><td><kbd>P</kbd> <kbd>Space</kbd></td><td>start / stop play mode (the song on the keys)</td></tr>
+      <tr><td>Reset</td><td><kbd>Backspace</kbd></td><td>all keys up, play mode off, timer to zero</td></tr>
+      <tr><td>● Record</td><td><kbd>R</kbd></td><td>a movie of the picture with sound, at the picture's size and the display's speed; press again to stop and the MP4 downloads</td></tr>
+      <tr><td>Song ◀ ▶</td><td><kbd>N</kbd> next</td><td>choose the song</td></tr>
+      <tr><td>Tempo − / +</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>beats per minute of play mode</td></tr>
+      <tr><td>Loop</td><td><kbd>K</kbd></td><td>when a song ends, pause a few seconds, then go on to the next one (after the last, back to the first); the eight dials on the toy turn to the new song's settings</td></tr>
+      <tr><td>Sound / Tone / Volume</td><td><kbd>M</kbd> <kbd>T</kbd> <kbd>-</kbd> <kbd>=</kbd></td><td>sound on / off; piano, electric piano, organ, toy organ, music box, chip (each song picks its own; Tone changes it until the next song); volume</td></tr>
+      <tr><td>Glow − / +</td><td><kbd>,</kbd> <kbd>.</kbd></td><td>how bright the red light is</td></tr>
+      <tr><td>Bubbles</td><td><kbd>B</kbd></td><td>the bubbles in the tubes</td></tr>
+      <tr><td>Room</td><td><kbd>L</kbd></td><td>room light on, so you can see the toy's body</td></tr>
+      <tr><td>View</td><td><kbd>V</kbd></td><td>her (the start: above, in front of the doll) / hero (from the player's side) / front / top / close on the keys (or drag the picture; the wheel zooms; double-click = the start view)</td></tr>
+      <tr><td>Look ◀ ▶ ▲ ▼</td><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>turn the toy</td></tr>
+      <tr><td>Turn</td><td><kbd>O</kbd></td><td>the camera drifts slowly round the toy (on at the start)</td></tr>
+      <tr><td>☰ / Info</td><td><kbd>H</kbd> <kbd>I</kbd></td><td>show / hide the display on the right; just the info</td></tr>
+    </table>
+    <h3>MIDI</h3>
+    <p>Any MIDI keyboard plays the toy (Chrome or Edge; click <b>MIDI</b> → Connect if the browser has not asked yet). X-TOUCH MINI (default map): top row = Play, Reset, Record, Tone, Song, View, Bubbles, Room; bottom row = Loop, Sound, Turn, Info, Glow −, Glow +, Tempo −, Tempo +;
+      knob 1 = tempo, 2 = volume, 3 = glow, 6 = turn left / right, 7 = look up / down, 8 = zoom; fader = volume.
+      For any other device: right-click an on-screen button, then press a MIDI control (kept in this browser).</p>
+    <p>URL options: <code>?play=0</code> (start stopped), <code>?song=2</code>,<code>?sound=0</code>, <code>?midi=0</code>, <code>?fps=30</code>, <code>?exposure=1.2</code>, <code>?recw=1920&amp;rech=1080</code>.</p>
+  </div>
+
+  <div class="panel" id="midiPanel">
+    <button class="x" data-close>✕</button>
+    <h2>MIDI</h2>
+    <p id="midiStatus">—</p>
+    <div id="midiDevices"></div>
+    <p>Notes from any device play the toy's keys. Right-click any button on the right, then press the MIDI control you want for it (Esc cancels). Learned controls are kept in this browser
+      and shown in <span class="learned">yellow</span>; the defaults come from <code>CT78.A10.Synth_midimap.js</code>.</p>
+    <div class="row">
+      <button id="midiConnect"><span class="t">Connect MIDI devices</span></button>
+      <button id="midiForget"><span class="t">Forget learned MIDI</span></button>
+      <label style="align-self:center">Movie frame rate <select id="fpsSel"><option value="60">60 fps</option><option value="30">30 fps</option></select></label>
+    </div>
+  </div>
+</div>
+
+<div id="side">
+<div id="hud"></div>
+<div id="hint"><b>H</b> or ☰ = show / hide this display · <b>R</b> = record a movie · <b>?</b> help<br>
+  click the keys · drag = turn · wheel = zoom · right-click a button = assign a MIDI control · <b>D</b> buttons · <b>I</b> info</div>
+<div id="bar">
+  <div class="grp"><span class="gl">Run</span>
+    <button data-action="play" class="tog" style="--c:var(--mint)"><span class="t">Play ▶</span><span class="m"></span></button>
+    <button data-action="reset"><span class="t">Reset</span><span class="m"></span></button>
+    <button data-action="record" id="b_record" class="tog"><span class="t">Record</span><span class="m"></span></button>
+    <div class="timer"><span class="v" id="v_timer">00:00.0</span><span class="u">timer</span></div>
+  </div>
+  <div class="grp"><span class="gl">Song</span>
+    <button data-action="prevSong" class="small"><span class="t">◀</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_song">Silent Night</span><span class="u">song</span></div>
+    <button data-action="nextSong" class="small"><span class="t">▶</span><span class="m"></span></button>
+    <button data-action="slower" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_tempo">112</span><span class="u">bpm</span></div>
+    <button data-action="faster" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button data-action="loop" class="tog" style="--c:var(--peach)"><span class="t">Loop</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Sound</span>
+    <button data-action="sound" class="tog" style="--c:var(--mint)"><span class="t">Sound</span><span class="m"></span></button>
+    <button data-action="tone"><span class="t" id="t_tone">Electric piano</span><span class="m"></span></button>
+    <button data-action="volDown" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_vol">80%</span><span class="u">volume</span></div>
+    <button data-action="volUp" class="small"><span class="t">+</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Light</span>
+    <button data-action="glowDown" class="small"><span class="t">−</span><span class="m"></span></button>
+    <div class="val"><span class="v" id="v_glow">100%</span><span class="u">glow</span></div>
+    <button data-action="glowUp" class="small"><span class="t">+</span><span class="m"></span></button>
+    <button data-action="bubbles" class="tog" style="--c:var(--rose)"><span class="t">Bubbles</span><span class="m"></span></button>
+    <button data-action="room" class="tog" style="--c:var(--butter)" title="room light on (L)"><span class="t">Room</span><span class="m"></span></button>
+  </div>
+  <div class="grp"><span class="gl">Look</span>
+    <button data-action="view" class="tog" style="--c:var(--sky)"><span class="t" id="t_view">View: hero</span><span class="m"></span></button>
+    <button data-action="lookLeft" class="small"><span class="t">◀</span><span class="m"></span></button>
+    <button data-action="lookRight" class="small"><span class="t">▶</span><span class="m"></span></button>
+    <button data-action="lookUp" class="small"><span class="t">▲</span><span class="m"></span></button>
+    <button data-action="lookDown" class="small"><span class="t">▼</span><span class="m"></span></button>
+    <button data-action="orbit" class="tog" style="--c:var(--sky)"><span class="t">Turn</span><span class="m"></span></button>
+  </div>
+  <div class="grp" id="dollctl"><span class="gl">Doll</span></div>
+  <div class="grp"><span class="gl">Setup</span>
+    <button data-action="hud" class="tog" style="--c:var(--butter)" title="the info at the top of this display (I)"><span class="t">Info</span><span class="m"></span></button>
+    <button id="b_midi"><span class="t">MIDI</span><span class="m" id="midiChip">off</span></button>
+    <button id="b_help"><span class="t">?</span><span class="m">help</span></button>
+  </div>
+</div>
+</div>
+
+<!-- all local: three.js r186 (MIT), mp4-muxer 5.2.1 (MIT), the CT45 MIDI layer -->
+<script src="CT78.A10.Synth_lib/three.r186.min.js"></script>
+<script src="CT78.A10.Synth_lib/ct68_carolers.js"></script>
+<script src="CT78.A10.Synth_lib/mp4-muxer.5.2.1.js"></script>
+<script src="CT78.A10.Synth_lib/ct45.profiles.js"></script>
+<script src="CT78.A10.Synth_lib/ct45midi.js"></script>
+<script src="CT78.A10.Synth_midimap.js"></script>
+<script src="CT78.A10.Synth_sound.js"></script>
+<script src="CT78.A10.Synth_rec.js"></script>
+<script src="CT78.A10.Synth_songs.js"></script>
+<script src="CT78.A10.Synth_model.js"></script>
+<script src="CT78.A10.Synth_doll.js"></script>
+<script src="CT78.A10.Synth_main.js"></script>
+<script src="CT78.A10.Synth_dollctl.js"></script>
+<script src="CT78.A10.Synth_midi.js"></script>
+</body>
+</html>

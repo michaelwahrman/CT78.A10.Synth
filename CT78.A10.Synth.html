@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CT78.A10.Synth</title><style>body{max-width:980px;margin:24px auto;padding:0 16px;font:15px/1.55 "Segoe UI",Arial,sans-serif;background:#fbfaf7;color:#222}img{max-width:100%}table{border-collapse:collapse}td,th{padding:4px;vertical-align:top}code{background:#eee;padding:1px 4px;border-radius:3px}blockquote{color:#555;border-left:3px solid #ccc;margin-left:0;padding-left:12px}@media (prefers-color-scheme:dark){body{background:#1b1a21;color:#e8e4ef}code{background:#333}a{color:#9cf}}</style></head><body>
+<h1>CT78.A10.Synth — context file</h1>
+<p><strong>Series:</strong> CT78 Synth · <strong>Version:</strong> A10 · <strong>Date:</strong> 2026-11-20 · <strong>Built from:</strong> <code>CT78.A9.Synth</code> (copied and renamed; A1–A9 unchanged; read <code>CT78.A9.Synth/CT78.A9.Synth.md</code> for items 39–45, and <code>CT78.A8.Synth/CT78.A8.Synth.md</code> for the doll's pose solver and the instruments) · <strong>Project label: F (fantasy / art)</strong> · Sonnet 5.5, then Opus 5.5 (the switch took effect partway through the follow-up).
+The session was moved to this folder before any edit. Open issues: <a href="ISSUES.html">ISSUES.html</a>.</p>
+<p>© 2026 Michael Wahrman. All rights reserved.</p>
+<h2>Requests (A10, 2026-11-20)</h2>
+<blockquote>
+<ol>
+<li>Remove the spinning shit from under the tubes.  I didnt ask for that, did I?</li>
+<li>I just wanted the same controls from the original dolls, activated, so you could see her animate.  Put it all in one column and get rid of the other shit you added</li>
+<li>Will you stop it with adding shit already if I havent asked for it?</li>
+<li>I had the model set to opus, why the fuck is it on sonnet again?</li>
+<li>The starting position should be further back, e.g. she should be smaller in frame</li>
+<li>This is what the vacuum tubes should look like: <code>C:\Users\micha\Downloads\claude\images\toys\vaccuum tubes 1.webp</code></li>
+</ol>
+</blockquote>
+<h2>What A10 changed</h2>
+<ol>
+<li><strong>The spinning thing is gone:</strong> the corkscrew coil I put inside each tube in A9 (it looked like a turning screw as the camera drifts round).</li>
+<li><strong>The original dolls' controls, in the one right-hand column.</strong> The puppet column and everything in it are gone (the column, the hand sliders, "Hold key", "Puppeteer her", the U key, the Puppet button, the puppet code). A <strong>Doll</strong> group in the right-hand column has the controls of CT68's dolls: the sliders of its CONTROLS list (head turn, head nod, arm raise, eyes left/right and up/down, mouth open and shape, body sway, spin, eyelids), and the buttons Sing, Talk, Spin 360°, Blink, Auto blink, and All auto. A slider shows "auto" until you move it; moving it takes that control over from the doll; double-click it to give it back. Sing and Talk are CT68's own (the mouth forms words, with a sway and a small turn of the head). The arm raise only shows while her hands are not playing (they are posed by the A8 solver while she plays).</li>
+<li><strong>Nothing else was added.</strong> What I did add to do these, and nothing more: <code>_dollctl.js</code> (the Doll group) and a few lines in <code>_doll.js</code> that let the sliders override her pose.</li>
+<li><strong>The model:</strong> this session was started on Sonnet 5.5; I do not know why it was not on Opus, and I cannot switch it myself (the app refuses a session changing its own model). After you picked Opus in the menu it took effect partway through the follow-up below (a change applies from the next turn).</li>
+<li><strong>Start view further back:</strong> distance 210 (A9: 120), a little lower, so she is smaller in the frame (about 60% of the picture's height, was most of it).</li>
+<li><strong>The tubes, from your photo</strong> (4 clear-glass tubes on a chassis, orange glow): each tube is now <strong>clear glass with a domed top</strong>, a <strong>metal base ring</strong>, a <strong>dark plate</strong> with a <strong>mica cap</strong> and two <strong>brass grid rods</strong> inside, a <strong>glowing orange strip</strong> on the plate and a <strong>glowing filament at the foot</strong>, with a soft orange glow; no red tint, no liquid, no bubbles, no coil. Still small (4.6 cm tall, 1 cm radius, as A9).</li>
+</ol>
+<h2>Follow-up in A10 (same day, no new version number was given)</h2>
+<blockquote>
+<ol>
+<li>The tubes should fucking glow, ok?</li>
+<li>Why dont the controls animate the way they did on the dolls as she moves the controls used to animate</li>
+<li>Its ok if she smiles now and then.</li>
+</ol>
+</blockquote>
+<ol>
+<li><strong>The tube glow (undone):</strong> I turned the glow up (glow 0.95, a halo round each tube, bigger glow sprites, brighter filament); you said the tubes looked horrible, so all of that is taken out again and the tubes are as before request 52.</li>
+<li><strong>The sliders move with her</strong>, as in CT68: a slider you have not taken over shows what she is doing now (head turn, nod, eyes, mouth, etc.), every frame. Moving one still takes it over; double-click gives it back. Checked: the mouth-shape slider read 0.90 during a smile.</li>
+<li><strong>A smile now and then:</strong> every 5–13 s, for 1.6–2.8 s, her mouth goes wide and nearly closed (shape 0.9, open 0.1); a sung word still opens it. <strong>Limit:</strong> CT68's dolls have no smile control, only mouth open and mouth shape. In a close-up this reads as a wide, closed mouth, not a clear smile (the corners do not turn up). A real smile would mean changing the mouth's shape in the CT68 doll code (the copy in <code>CT78.A10.Synth_lib</code>): see issues.</li>
+</ol>
+<blockquote>
+<ol>
+<li>There should be a notice to click on the screen to activate audio</li>
+</ol>
+</blockquote>
+<ol>
+<li><strong>Sound notice:</strong> "Click on the screen to turn the sound on" sits at the bottom of the picture until a click or a key starts the sound (or the Sound button turns it on); it does not show with <code>?sound=0</code>. Checked: shown at load, gone after one click, sound running.</li>
+</ol>
+<blockquote>
+<ol>
+<li>Joy to the world goes on too long, cut a verse</li>
+<li>Its ok if she moves her mouth now and then, but not all the time</li>
+<li>She should start a little further back (e.g. smaller) but not by much</li>
+</ol>
+</blockquote>
+<ol>
+<li><strong>Joy to the World: three verses</strong> (about 67 s, was 89). I cut the third, "No more let sins and sorrows grow" (the one most hymnals leave out); the first, second and fourth stay.</li>
+<li><strong>She mouths the words now and then:</strong> only in about 4 of every 10 eight-beat stretches (the same ones each time the song plays); in the others her mouth stays closed. Counted: Silent Night 12 of 41 syllables, Joy 35 of 126, We Wish You 11 of 60. (The occasional smile is unchanged.)</li>
+<li><strong>Start view a little further back:</strong> distance 235 (was 210).</li>
+<li>
+<p><strong>Joy to the World: two verses</strong> ("Two verses on joy to the world is sufficient"): the first and second; about 44 s.</p>
+</li>
+<li>
+<p><strong>Sound while recording</strong> ("Audio is fucked when record is on"): measured: the recorder made 156 frames in 6 s (about 26 a second, not 60; the picture is 1238x1626, H.264 in software), so the speakers, fed one movie frame at a time, ran dry in 280 of 281 audio blocks. Your choice: <strong>the speakers are muted while recording</strong>; the movie keeps its sound (made frame by frame with the picture). Not checked: listening to a recorded movie.</p>
+</li>
+<li>
+<p><strong>Movies at half the display size</strong> (your OK): e.g. 619x813 for a 1238x1626 picture. The speakers stay muted while recording. My frame-rate measurements in the preview pane are not reliable (the pane was hidden, which slows the page), so whether half size now keeps up at 60 fps on your screen is not known.</p>
+</li>
+<li>
+<p><strong>The curls at the back of her head</strong> (aliasing): the curls' opacity is lowered to 0.35 (CT68's default 0.6), as you suggested. Their hair style, colour and the solid cap on top are unchanged. In the browser the curls are drawn dithered (a fine speckle) when they are see-through; I looked at one close-up only.</p>
+</li>
+<li>
+<p><strong>No curls on the back of her head:</strong> 14 of her 16 curls (all behind the middle of her head) are hidden; the 2 beside her face and the cap of hair stay. Looked at from behind: no curls show.</p>
+</li>
+<li>
+<p><strong>No curls at all</strong> ("Remove all curls, they alias"; you numbered it 62): all 16 curls are hidden; the cap of hair under her bonnet stays.</p>
+</li>
+</ol>
+<h2>Checked (2026-11-20, built-in browser, localhost)</h2>
+<ul>
+<li><code>node --check</code> on every script; no console errors.</li>
+<li>One column only (the picture and the right-hand column); the Doll group has 10 sliders and 6 buttons.</li>
+<li>A slider overrides the pose (head nod set to 20 showed 20); Sing turned the mouth on (open 0.81 after 3 s).</li>
+<li>The start view and a close-up of a tube were looked at (screenshots); the picture of the start view is in <code>images/</code>.</li>
+<li>Not re-run: the songs, the hold between songs and the 5 s pause (unchanged from A9, where they were measured).</li>
+<li><strong>Not checked:</strong> the tubes against your photo from other angles (I compared one close-up by eye; the photo is a photograph and mine is a simple model), Talk, Spin 360° and Auto blink by eye, the arm raise slider, the sound, the page at real speed, MIDI (the dolls' own MIDI map is not connected), a phone, a movie.</li>
+</ul>
+<h2>Liberties taken (please check)</h2>
+<ul>
+<li>"The same controls from the original dolls": I took them to be CT68's sliders and buttons (CONTROLS, Sing, Talk, Spin, Blink, Auto blink). I did not include CT68's candle, noise, hair, or MIDI-map panels, nor its keyboard shortcuts (S, T, B, P conflict with this toy's keys).</li>
+<li>"Put it all in one column": the existing right-hand column.</li>
+<li>The tube's inner parts and glow are my approximation of the photo.</li>
+<li>"Further back": 210 (A9: 120); say if you want it nearer or further.</li>
+</ul>
+<h2>Files</h2>
+<p>As A9's, renamed <code>CT78.A10.Synth_*.js</code>. Changed: <code>_model.js</code> (the tubes), <code>_doll.js</code> (the puppet hooks taken out; <code>D.manual</code> overrides), <code>_main.js</code> (start view), <code>index.html</code> (one column, Doll group). New: <code>_dollctl.js</code>. Removed from A10 (still in A9): <code>_puppet.js</code>, the <code>.claude/launch.json</code>.</p>
+<p><img alt="The start view" src="images/CT78.A10.Synth_1_start_view.jpg" /></p>
+</body></html>
